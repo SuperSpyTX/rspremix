@@ -1,0 +1,30 @@
+Use these SQLs and add them to your DB and then add your account.
+
+CREATE TABLE `accounts_rs` (
+  `rapidshare` varchar(600) NOT NULL,
+  `bw` int(255) NOT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+
+CREATE TABLE `logs` (
+  `fid` int(10) NOT NULL AUTO_INCREMENT,
+  `filename` varchar(200) COLLATE latin1_general_ci NOT NULL DEFAULT '',
+  `fdate` varchar(150) COLLATE latin1_general_ci NOT NULL DEFAULT '',
+  `ip` varchar(150) COLLATE latin1_general_ci NOT NULL DEFAULT '',
+  `furl` varchar(150) COLLATE latin1_general_ci NOT NULL DEFAULT '',
+  `filesize` varchar(150) COLLATE latin1_general_ci NOT NULL DEFAULT '',
+  `valid` int(255) NOT NULL,
+  PRIMARY KEY (`fid`)
+) ENGINE=MyISAM  DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci AUTO_INCREMENT=936158 ;
+
+########
+
+
+-Create cronjobs :
+1/use host :
+.......
+*/15 (every 15 minutes) -> php -q /home/"hostusername"/public_html/accountcheck.php
+....... 
+2/or host free :
+http://www.setcronjob.com/ 
+
+#######
