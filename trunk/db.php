@@ -1,16 +1,15 @@
 <?php
-/*
+
 if ( ! defined( 'IBIET' ) )
 {
 	print "You cannot access this file directly.";
 	exit();
 }
-*/
 class db {
 
     var $query_count    = 0;
     var $obj  = array (
-        'sql_host'      => 'localhost',
+        'sql_host'      => '',
         'sql_user'      => '',
         'sql_pass'      => '',
         'sql_database'  => ''
@@ -57,5 +56,9 @@ class db {
 }
 
 $DB = new db;
+$DB->obj['sql_database']     = $INFO['sql_database'];
+$DB->obj['sql_user']         = $INFO['sql_user'];
+$DB->obj['sql_pass']         = $INFO['sql_pass'];
+$DB->obj['sql_host']         = $INFO['sql_host'];
 $DB->connect();
 ?>
