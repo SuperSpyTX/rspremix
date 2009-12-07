@@ -1,16 +1,18 @@
 <?php
-error_reporting(E_ERROR | E_PARSE);
+//ini_set("display_errors", "1");
 define( 'IBIET', 1 );
+session_start();
 @require "config.php";
 @require "db.php";
-
     //-----------------------------------------------------
     // Initialize
     //-----------------------------------------------------
     function initialize()
     {
         global  $DB, $INFO;
-
+if(session_is_registered("dlpremium")) {
+	$dlpremium = "true";
+}
         //$this->vars = &$INFO;
         $act = $_GET['action'];
         if($_POST['url'] != "")
@@ -64,14 +66,14 @@ define( 'IBIET', 1 );
                 $txtstring = "Sorry, there is no more premium accounts available. Please come visit again soon.";
             }
         }
-        if($INFO['dl_limit_perday'] > 0)
+        if($dl_limit > 0)
         {
             $l_limit = time() - 60*60*24;
             $ip = $_SERVER['REMOTE_ADDR'];
             $l = $DB->query("SELECT * FROM logs WHERE fdate > '$l_limit' AND ip = '$ip'");
             $link_downloaded = $DB->get_num_rows($l);
             $link_downloaded = ($link_downloaded) ? $link_downloaded : 0;
-            $stat = "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>So far you have downloaded $link_downloaded/{$INFO['dl_limit_perday']} links limit.<br>Current Rapidshare Bandwidth Available: $bw</span>";
+            $stat = "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>So far you have downloaded $link_downloaded/{$dl_limit} links limit.<br>Current Rapidshare Bandwidth Available: $bw</span>";
         }
 
         $data['html'] .= "<script>\n";
@@ -88,10 +90,14 @@ define( 'IBIET', 1 );
         $data['html'] .= "<form action=\"\" method=\"post\" onsubmit=\"return CheckForm()\">\n";
         $data['html'] .= "<input type=\"text\" id=\"url\" style=\"text-align:center\" name=\"url\" value=\"$txtstring\" size=\"60\" onfocus=\"if(this.value=='Enter rapidshare.com URL here'){this.value=''}\" $stage>\n";
         $data['html'] .= "<br><input type=\"submit\" value=\"Download\" $stage></form>";
-        $data['html'] .= "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>So far you have downloaded $link_downloaded/{$INFO['dl_limit_perday']} links limit.<br>Current Rapidshare Bandwidth Available: $bw</span>";
+        if($dlpremium == "true") {
+        		print "<span style='color:orange; background-color:Yellow; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>Premium Downloads Enabled (BETA)</span>";
+        }
+        $data['html'] .= "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>So far you have downloaded $link_downloaded/{$dl_limit} links limit.<br>Current Rapidshare Bandwidth Available: $bw</span>";
 
         $data['title'] = "RsPremiX ~ Rapidshare Premium Link Generator ~";
         _print($data);
+        
     }
     // GetFileInfo and Download is now here.
 function getFileInfo($link)
@@ -144,7 +150,6 @@ function getFileInfo($link)
 	}
 function getserver($link)
 	{
-		global $ibiet;
 
         $url = @parse_url($link);
         $curl = curl_init();
@@ -177,6 +182,17 @@ return $result;
         $link = addslashes(trim($lin)) ;
         $url = @parse_url($link);
         $ip = $_SERVER['REMOTE_ADDR'];
+        $user = $_SESSION['user'];
+        $pass = $_SESSION['pass'];
+        $retrieve = $DB->query("SELECT * FROM members WHERE username='$user' and password='$pass'");
+        $aw = $DB->fetch_array($retrieve);
+        $tokens = $aw['tokens'];
+        $tokens2 = $tokens-1;
+        if($tokens == "0") {
+        	print "<span style='color:yellow; background-color:orange; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'><b>Sorry, there is no more Premium Download Tokens. You won't be able to download any more files until you buy more tokens.</span>";
+        	exit();
+        }
+        $DB->query("UPDATE `members` SET  `tokens` =  '$tokens2' WHERE username='$user' and password='$pass'");
         if($url['host'] != "rapidshare.com" || !preg_match("#^/files/#", $url['path']))
         {
             $data['html'] = "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'><b>Please enter a valid rapidshare.com link.</b></span>";
@@ -192,15 +208,15 @@ return $result;
             _print($data);
             return;
         }
-        if($INFO['dl_limit_perday'] > 0)
+        if($dl_limit > 0)
         {
             $l_limit = time() - 60*60*24;
             $l = $DB->query("SELECT * FROM logs WHERE fdate > '$l_limit' AND ip = '$ip'");
             $link_downloaded = $DB->get_num_rows($l);
             $link_downloaded = ($link_downloaded) ? $link_downloaded : 0;
-            if($link_downloaded >= intval($INFO['dl_limit_perday']))
+            if($link_downloaded >= intval($dl_limit))
             {
-                $data['html'] .= "You have downloaded $link_downloaded/{$INFO['dl_limit_perday']} links already.";
+                $data['html'] .= "You have downloaded $link_downloaded/{$dl_limit} links already. Come back in 24hrs for reset.";
 
                 $data['title'] = "Error";
                 _print($data);
@@ -215,21 +231,31 @@ return $result;
             _print($data);
             return;
         }
+         if(session_is_registered("dlpremium")) {
+        	$dlpremium = "true";
+        }
         $full_link = getserver($link);
         $try = getFileInfo($full_link, $r);
         $filename = $try['filename'];
         $fsize = $try['fsize'];
-
+        /*
+$htm2 = strpos($filename, ".html");
+if($htm2 === true) {
+		$filename = str_replace(".html", "", $filename);
+		$full_link = str_replace(".html", "", $full_link);
+}
+*/
         $now = time();
         $fid = rand(1000,1000000);
         $DB->query("INSERT INTO logs SET fid='$fid',filename='{$filename}',ip='$ip',fdate='$now',furl='$full_link', filesize='$fsize'");
         $dlurl = "index.php?action=download&id=$fid";
-        
-
-        $data['html'] .= "<br><a href='$dlurl'><span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>Click here to download this file <br><b>$filename</b></span></a>\n";
-
-        $data['title'] = "Download";
-        _print($data);
+        if(!$dlpremium == "true") {
+         print "Your download can begin <a href='$dlurl'>here</a>";
+         exit();
+        } else {
+        	header("Location: $dlurl");
+        	
+        }
     }
 
     //-----------------------------------------------------
@@ -246,22 +272,27 @@ return $result;
        list($rlogin, $rpass) = split(":", $rapidshare); 
         $limit = time() - 60*60*1; //Only download link that was generated in the last hour.
         $ip = $_SERVER['REMOTE_ADDR'];
-        $q = $DB->query("SELECT * FROM logs WHERE fid=$id AND ip=$ip");
+        $q = $DB->query("SELECT * FROM logs WHERE fid=$id");
         $row = $DB->fetch_array($q);
         $qcheck = $row['valid'];
         $url = @parse_url($row['furl']);
+        $fnfile = $row['filename'];
+        $row['filename'] = str_replace(".html", "", $fnfile);
         if($row['furl'] == "")
         {
             @header("HTTP/1.0 404 Not Found");
             echo "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'><b>Invalid or Broken Link.</b></span>";
             exit;
         }
-                
-        if($qcheck > 0) {
+                 if(session_is_registered("dlpremium")) {
+        	$dlpremium = "true";
+        }
+        if($qcheck > 0 && !$dlpremium == "true") {
         		 echo "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'><b>Invalid or Broken Link.</b></span>";
         		 exit;
         }
          $DB->query("UPDATE `logs` SET `valid` = '1' WHERE `fid` = $id;");
+         
         header('Content-Description: File Transfer');
 header('Content-Type: application/octet-stream');
 header('Content-Disposition: attachment; filename='.$row['filename']);
@@ -298,11 +329,17 @@ header('Pragma: public');
             echo "<span style='color:#688000; background-color:#BBDB54; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>The script says <b>$errstr</b>, please try again later.</span>";
             exit;
         }
-        @stream_set_timeout($fp, 300);
+        $max_speed = 4;
+        $max_timeout = 4;
+        if($dlpremium == "true") {
+        		$max_speed = 2024;
+        		$max_timeout = 300;
+        }
+        @stream_set_timeout($fp, $max_timeout);
         fputs($fp, "POST {$url['path']}  HTTP/1.1\r\n");
         fputs($fp, $head.$vars);
         fflush($fp);
-        $buff = 256;
+        $buff = $max_speed;
         while (!feof($fp))
         {
             $data = fgets($fp, $buff);
@@ -318,7 +355,7 @@ header('Pragma: public');
                 {
                     print $d[1];
                     $headerdone = true;
-                    $buff = 1024;
+                    $buff = $max_speed;
                 }
             }
             flush();
@@ -365,6 +402,11 @@ header('Pragma: public');
      function _print($data)
     {
         global  $DB;
+           $user = $_SESSION['user'];
+        $pass = $_SESSION['pass'];
+        $retrieve = $DB->query("SELECT * FROM members WHERE username='$user' and password='$pass'");
+        $aw = $DB->fetch_array($retrieve);
+        $tokens = $aw['tokens'];
 
         $t = "<html>\n";
         $t .= "<head>\n";
@@ -373,6 +415,16 @@ header('Pragma: public');
         $t .= "</head>\n\n";
         $t .= "<body>\n";
         $t .= "<table width='100%' height='100%'><tr><td align='center' valign='top'>\n";
+                    if(session_is_registered("dlpremium")) {
+	$dlpremium = "true";
+}
+if($dlpremium == "true" && !$tokens == "0") {
+        		$t .= "<span style='color:Yellow; background-color:orange; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>Premium Download Enabled (BETA)<br> Download Tokens: $tokens</span>";
+        } 
+        if($dlpremium == "true" && $tokens == "0") {
+        		$t .= "<span style='color:Orange; background-color:red; font-size : 10pt; text-decoration: none; font-family: Trebuchet MS;'>Premium Download Disabled (BETA)<br> You have no more tokens.</span>";
+        }
+
         $t .= $data['html'];
         $t .= "\n</td></tr></table>\n";
         $t .= "</body>\n";
