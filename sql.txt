@@ -24,9 +24,10 @@ CREATE TABLE IF NOT EXISTS `members` (
   PRIMARY KEY  (`id`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=latin1 AUTO_INCREMENT=3 ;
 
-INSERT INTO `members` (`id`, `username`, `password`, `tokens`) VALUES 
-(1, 'demo', 'demo', 50);
+INSERT INTO `members` (`id`, `username`, `password`, `tokens`, `rapidshare`) VALUES 
+(1, 'admin', 'yourpass', 50, 'admin');
 
+INSERT INTO `accounts_rs` (`rapidshare`, `bw`) VALUES ('RSUSERNAME:RSPASSWORD', '0');
 ########
 
 
