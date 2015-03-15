@@ -5,6 +5,6 @@ If you donated a working premium account to the site, you would have a working p
 
 # History
 
-Obviously this was old as hell, back in 2009 when I used to visit and browse the rapidleech forums.  I was under the alias "megzleech" for those curious (it's in the code, so hiding this information would be pointless).  This was one of my few first encounters with PHP so this code is obviously copypasta, and also full of security bugs (*cough*SQLISQLISQLISQLI*cough*).
+Obviously this is old as hell, back in 2009 when I used to visit and browse the rapidleech forums.  I was under the alias "megzleech" for those curious (it's in the code, so hiding this information would be pointless).  This was one of my few first encounters with PHP so this code is obviously copypasta, and also full of security bugs (*cough*SQLISQLISQLISQLI*cough*).
 
 Anyways, I hope you enjoy my first few experiences with PHP!
